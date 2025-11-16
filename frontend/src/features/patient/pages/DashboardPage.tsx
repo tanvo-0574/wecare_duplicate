@@ -1,0 +1,367 @@
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../shared/context/AuthContext";
+import { patientApiService } from "../services/patientApiService";
+import { Calendar, Clock, User, Activity } from "lucide-react";
+import { patientService } from "../../../shared/services/patientService";
+import { useTranslation } from "react-i18next";
+
+interface DashboardStats {
+  upcomingAppointments: number;
+  totalAppointments: number;
+  pendingBills: number;
+  completedVisits: number;
+}
+
+interface RecentAppointment {
+  id: number;
+  doctorName: string;
+  specialization: string;
+  date: string;
+  time: string;
+  status: "upcoming" | "completed" | "cancelled";
+}
+
+const DashboardPage: React.FC = () => {
+  const [patient, setPatient] = useState<PatientInfo | null>(null);
+  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+  const { t } = useTranslation();
+
+  const [stats, setStats] = useState<DashboardStats>({
+    upcomingAppointments: 0,
+    totalAppointments: 0,
+    pendingBills: 0,
+    completedVisits: 0,
+  });
+
+  const [recentAppointments, setRecentAppointments] = useState<
+    RecentAppointment[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (isAuthenticated && user?.role === "P") {
+      patientService
+        .getCurrentPatient()
+        .then((data) => setPatient(data))
+        .catch((err) => console.error("Lỗi lấy thông tin bệnh nhân:", err));
+    }
+  }, [isAuthenticated, user]);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoading(true);
+        let myAppointments = [];
+        let upcomingAppointments = [];
+
+        try {
+          const myAppointmentsData =
+            await patientApiService.appointments.getMy();
+
+          if (myAppointmentsData?.content) {
+            myAppointments = myAppointmentsData.content;
+          } else if (myAppointmentsData?.results) {
+            myAppointments = myAppointmentsData.results;
+          } else if (Array.isArray(myAppointmentsData)) {
+            myAppointments = myAppointmentsData;
+          }
+        } catch (error) {
+          console.error("Failed to fetch my appointments:", error);
+        }
+
+        try {
+          const upcomingData =
+            await patientApiService.appointments.getUpcoming();
+          upcomingAppointments = Array.isArray(upcomingData)
+            ? upcomingData
+            : [];
+        } catch (error) {
+          console.error("Failed to fetch upcoming appointments:", error);
+        }
+
+        const upcomingCount = upcomingAppointments?.length || 0;
+        const totalCount = myAppointments?.length || 0;
+        const completedVisitsCount =
+          myAppointments?.filter(
+            (appt: any) => appt?.status === "COMPLETED" || appt?.status === "C"
+          )?.length || 0;
+
+        setStats({
+          upcomingAppointments: upcomingCount,
+          totalAppointments: totalCount,
+          pendingBills: 0,
+          completedVisits: completedVisitsCount,
+        });
+
+        const formattedAppointments: RecentAppointment[] =
+          upcomingAppointments?.slice(0, 2)?.map((appt: any) => ({
+            id: appt?.id || Math.random(),
+            doctorName: appt?.doctorInfo?.fullName || t("dashboard.unknownDoctor"),
+            specialization:
+              appt?.doctorInfo?.specialization ||
+              appt?.doctorInfo?.department ||
+              t("dashboard.unknownSpecialty"),
+            date:
+              appt?.schedule?.work_date ||
+              appt?.date ||
+              new Date().toISOString().split("T")[0],
+            time:
+              appt?.schedule?.start_time ||
+              appt?.slot_start ||
+              appt?.time ||
+              "00:00",
+            status: appt?.status?.toLowerCase() || "upcoming",
+          })) || [];
+
+        setRecentAppointments(formattedAppointments);
+      } catch (error) {
+        console.error("Unexpected error in fetchDashboardData:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isAuthenticated) {
+      fetchDashboardData();
+    }
+  }, [isAuthenticated, t]);
+
+  if (loading) {
+    return (
+      <div className="bg-gray-50 p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-64 mb-6"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="h-4 bg-gray-200 rounded w-24 mb-4"></div>
+                <div className="h-8 bg-gray-200 rounded w-16"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "upcoming":
+        return "bg-blue-100 text-blue-800";
+      case "completed":
+        return "bg-green-100 text-green-800";
+      case "cancelled":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "upcoming":
+        return t("dashboard.status.upcoming");
+      case "completed":
+        return t("dashboard.status.completed");
+      case "cancelled":
+        return t("dashboard.status.cancelled");
+      default:
+        return status;
+    }
+  };
+
+  return (
+    <div>
+      {/* Welcome Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {t("dashboard.welcome")},{" "}
+              {patient
+                ? `${patient.first_name} ${patient.last_name}`
+                : user?.name || user?.email || t("dashboard.defaultPatient")}
+              !
+            </h1>
+            <p className="text-gray-600 mt-1">{t("dashboard.subtitle")}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Calendar className="h-6 w-6 text-blue-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">
+                  {t("dashboard.stats.upcoming")}
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.upcomingAppointments}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <Activity className="h-6 w-6 text-green-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">
+                  {t("dashboard.stats.total")}
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.totalAppointments}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+            <div className="flex items-center">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <User className="h-6 w-6 text-purple-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">
+                  {t("dashboard.stats.completed")}
+                </p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.completedVisits}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Appointments */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {t("dashboard.recentAppointments")}
+                </h3>
+                <button
+                  onClick={() => navigate("/patient/appointments/upcoming")}
+                  className="text-cyan-600 hover:text-cyan-700 text-sm font-medium"
+                >
+                  {t("dashboard.viewAll")}
+                </button>
+              </div>
+            </div>
+            <div className="p-6">
+              {recentAppointments.length > 0 ? (
+                <div className="space-y-4">
+                  {recentAppointments.map((appointment) => (
+                    <div
+                      key={appointment.id}
+                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">
+                          {appointment.doctorName}
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          {appointment.specialization}
+                        </p>
+                        <div className="flex items-center mt-2 text-sm text-gray-500">
+                          <Calendar size={16} className="mr-2" />
+                          <span>
+                            {new Date(appointment.date).toLocaleDateString(
+                              "vi-VN"
+                            )}
+                          </span>
+                          <Clock size={16} className="ml-4 mr-2" />
+                          <span>{appointment.time}</span>
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(
+                            appointment.status
+                          )}`}
+                        >
+                          {getStatusText(appointment.status)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Calendar className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <p className="text-gray-600">
+                    {t("dashboard.noAppointments")}
+                  </p>
+                  <button
+                    onClick={() => navigate("/patient/book-appointment")}
+                    className="mt-2 text-cyan-600 hover:text-cyan-700 font-medium"
+                  >
+                    {t("dashboard.bookNow")}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {t("dashboard.quickActions")}
+              </h3>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 gap-4">
+                <button
+                  onClick={() => navigate("/patient/book-appointment")}
+                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-cyan-50 hover:border-cyan-200 transition-colors group"
+                >
+                  <div className="p-2 bg-cyan-100 rounded-lg group-hover:bg-cyan-200">
+                    <User className="h-5 w-5 text-cyan-600" />
+                  </div>
+                  <div className="ml-4 text-left">
+                    <p className="font-semibold text-gray-900">
+                      {t("dashboard.findDoctor")}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {t("dashboard.findDoctorDesc")}
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => navigate("/patient/appointments/upcoming")}
+                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-green-50 hover:border-green-200 transition-colors group"
+                >
+                  <div className="p-2 bg-green-100 rounded-lg group-hover:bg-green-200">
+                    <Calendar className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div className="ml-4 text-left">
+                    <p className="font-semibold text-gray-900">
+                      {t("dashboard.myAppointments")}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {t("dashboard.myAppointmentsDesc")}
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default DashboardPage;
