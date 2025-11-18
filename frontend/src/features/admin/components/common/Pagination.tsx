@@ -15,24 +15,14 @@ const Pagination: React.FC<PaginationProps> = ({
   totalItems,
   onPageChange,
 }) => {
-  // Debug log
-  console.log("Pagination component props:", {
-    currentPage,
-    totalPages,
-    pageSize,
-    totalItems,
-  });
-
   const start = (currentPage - 1) * pageSize + 1;
   const end = Math.min(currentPage * pageSize, totalItems);
 
   const getPages = () => {
     const pages = [];
-    console.log("getPages called with totalPages:", totalPages);
     for (let i = 1; i <= totalPages; i++) {
       pages.push(i);
     }
-    console.log("Generated pages:", pages);
     return pages;
   };
 
@@ -73,10 +63,6 @@ const Pagination: React.FC<PaginationProps> = ({
           >
             <button
               onClick={() => {
-                console.log(
-                  "Previous button clicked, currentPage:",
-                  currentPage
-                );
                 if (currentPage > 1) {
                   onPageChange(currentPage - 1);
                 }
@@ -106,7 +92,6 @@ const Pagination: React.FC<PaginationProps> = ({
               <button
                 key={page}
                 onClick={() => {
-                  console.log("Page number clicked:", page);
                   onPageChange(page);
                 }}
                 aria-current={page === currentPage ? "page" : undefined}
@@ -121,12 +106,6 @@ const Pagination: React.FC<PaginationProps> = ({
             ))}
             <button
               onClick={() => {
-                console.log(
-                  "Next button clicked, currentPage:",
-                  currentPage,
-                  "totalPages:",
-                  totalPages
-                );
                 if (currentPage < totalPages) {
                   onPageChange(currentPage + 1);
                 }

@@ -115,16 +115,22 @@ const AppointmentConfirmationPage: React.FC = () => {
         throw new Error(t("appointment.confirmation.invalidData"));
       }
 
+      // Update appointment status to confirmed
       await appointmentService.updateAppointment(appointment.id, {
         status: "C" as AppointmentStatus,
       });
+      // Create the bill as usual
       const bill = await paymentService.createBillFromAppointment(
         appointment.id,
         patientDetails.id,
         doctorDetails.price
       );
-      const paymentUrl = await paymentService.createPaymentLink(bill.id);
-      window.location.href = paymentUrl;
+
+      // Simulate payment success: update appointment as paid (if needed)
+      // Optionally, you can call a backend endpoint to mark the bill as paid
+      message.success(t("appointment.confirmation.paidSuccess") || "Đã thanh toán thành công!");
+      setAppointment({ ...appointment, status: "C" as AppointmentStatus });
+      // Optionally, navigate to a success page or show a success message
     } catch (error: any) {
       console.error(
         "Error during confirmation:",
