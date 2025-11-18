@@ -113,7 +113,6 @@ const AddDoctor: React.FC = () => {
     setSuccess(null);
     try {
       // STEP 1: Validate ALL fields before any server request
-      console.log("🔍 Starting comprehensive validation...");
       const validationErrors = await validateAllFields();
 
       // STEP 2: If there are ANY validation errors, show modal and STOP
@@ -133,15 +132,11 @@ const AddDoctor: React.FC = () => {
           .map(([field, error]) => `• ${fieldNames[field] || field}: ${error}`)
           .join("\n");
 
-        console.log("❌ Validation failed:", validationErrors);
         setError("Vui lòng sửa các lỗi sau trước khi tạo bác sĩ:");
         setErrorDetails(errorList);
         setShowErrorModal(true);
         return; // STOP HERE - DO NOT send any request to server
       }
-
-      // STEP 3: ALL validation passed - now send request to server
-      console.log("✅ All validation passed. Creating doctor...");
 
       // Split fullName into first_name and last_name
       const nameParts = formData.fullName.trim().split(" ");
@@ -169,10 +164,8 @@ const AddDoctor: React.FC = () => {
         ...(avatarPreview && { avatar: avatarPreview }),
       };
 
-      console.log("📤 Sending doctor data to server:", doctorData);
       await doctorService.createDoctor(doctorData);
 
-      console.log("🎉 Doctor created successfully!");
       setSuccess("Tạo bác sĩ mới thành công!");
 
       // Auto navigate after 2 seconds

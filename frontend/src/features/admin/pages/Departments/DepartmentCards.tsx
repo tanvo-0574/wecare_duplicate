@@ -28,7 +28,6 @@ export default function DepartmentCards() {
                 setLoading(true);
 
                 const apiDepartments = await departmentService.getAllDepartments();
-                console.log("Fetched departments:", apiDepartments);
                 const departmentIds = apiDepartments
                     .map(dept => dept.id)
                     .filter(id => id !== undefined);
@@ -42,7 +41,6 @@ export default function DepartmentCards() {
 
                 // Wait for all doctor fetches to complete in parallel
                 const allDoctorArrays = await Promise.all(doctorPromises);
-                console.log("Fetched doctors:", allDoctorArrays);
                 // Step 4: Create a map of department id -> doctors for quick lookup
                 const doctorMap = new Map();
                 departmentIds.forEach((id, index) => {

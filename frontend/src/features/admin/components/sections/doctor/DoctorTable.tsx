@@ -28,7 +28,6 @@ const DoctorTable: React.FC = () => {
     doctorService
       .getAllDoctors()
       .then((data) => {
-        console.log("👉 Dữ liệu từ backend:", data); 
         setDoctors(data);
         setFilteredDoctors(data);
       })
