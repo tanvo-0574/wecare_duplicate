@@ -1,5 +1,5 @@
 
-# Wecare Duplicate - Medical Examination Management
+# Wecare - Medical Examination Management
 
 >This project is a medical examination management system for clinics and hospitals.
 
