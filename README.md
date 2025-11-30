@@ -1,14 +1,15 @@
+
 # Wecare Duplicate - Medical Examination Management
 
->This project is a medical examination management system with integrated AI for disease prediction.
+>This project is a medical examination management system for clinics and hospitals.
 
 ## Project Structure
 
 - `backend/` - Django backend API
 - `frontend/` - Frontend (likely React + Vite)
-- `disease-prediction-service/` - AI disease prediction microservice (Python)
 
 ## Getting Started
+
 
 ### 1. Clone the Repository
 
@@ -19,7 +20,10 @@ cd wecare_duplicate
 
 ---
 
+
+
 ### 2. Backend Setup (Django)
+
 
 ```bash
 cd backend
@@ -32,6 +36,11 @@ source venv/bin/activate  # On macOS/Linux
 # Install dependencies
 pip install -r requirements.txt
 
+# Set up environment variables
+cp .env.example .env  # On Linux/macOS
+# or manually create a .env file based on .env.example on Windows
+# Edit the .env file and fill in your database and secret key information
+
 # Run migrations
 python manage.py migrate
 
@@ -42,27 +51,11 @@ The backend will be available at `http://127.0.0.1:8000/`.
 
 ---
 
-### 3. Disease Prediction Service Setup
 
-```bash
-cd ../disease-prediction-service
-# (Optional) Create and activate a virtual environment
-python -m venv venv
-venv\Scripts\activate  # On Windows
-# or
-source venv/bin/activate  # On macOS/Linux
 
-# Install dependencies
-pip install -r requirements.txt
 
-# Start the service
-python app.py
-```
-The service will be available at `http://127.0.0.1:5000/` (or as specified in `app.py`).
+### 3. Frontend Setup
 
----
-
-### 4. Frontend Setup
 
 ```bash
 cd ../frontend
@@ -76,6 +69,7 @@ npm run dev
 The frontend will be available at the address shown in the terminal (usually `http://localhost:5173/`).
 
 ---
+
 
 ## Notes
 - Ensure Python 3.8+ and Node.js 16+ are installed.
